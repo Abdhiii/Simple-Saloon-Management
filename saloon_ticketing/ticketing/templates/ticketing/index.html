@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saloon Ticketing System</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            font-size: 50px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.6);
+            font-family: 'Dancing Script', cursive;
+            background: rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+        .divider {
+            width: 150px;
+            height: 4px;
+            background-color: #FFD700;
+            margin: 10px auto;
+            border-radius: 2px;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 20px;
+        }
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 90%;
+            max-width: 1200px;
+        }
+        .service-card {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+            border: 3px solid transparent;
+        }
+        .service-card img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .service-card p {
+            margin-top: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            color: black;
+        }
+        .selected {
+            border-color: #ff4081;
+            box-shadow: 0px 0px 15px rgba(255, 64, 129, 0.8);
+        }
+        .btn-container {
+            width: 90%;
+            max-width: 1200px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .btn-primary {
+            background-color: #ff4081;
+            border-color: #ff4081;
+            font-weight: bold;
+            padding: 15px;
+            font-size: 20px;
+            width: 100%;
+            max-width: 400px;
+            transition: 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #e91e63;
+            border-color: #e91e63;
+        }
+        .ticket-details {
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 20px;
+            border-left: 5px solid #ff4081;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 1200px;
+            margin-top: 20px;
+            display: none;
+        }
+        .customer-input {
+            width: 80%;
+            max-width: 600px;
+            padding: 15px;
+            font-size: 20px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body style="background: url('{% static "images/bckimg.png" %}') no-repeat center center fixed; background-size: cover;">
+
+
+
+    <!-- CSRF Token Form -->
+    <form id="csrf-form">{% csrf_token %}</form>
+
+    <div class="header">
+        Saloon Ticketing System
+        <div class="divider"></div>
+    </div>
+
+    <div class="container">
+        <input type="text" id="customer_name" class="form-control customer-input mb-4" placeholder="Enter your name" required>
+
+        <div class="services">
+            <div class="service-card" data-service="Hair Cut" onclick="toggleService('Hair Cut', 300)">
+                <img src="{% static 'images/haircut.png' %}" alt="Hair Cut">
+                <p>Hair Cut - ₹300</p>
+            </div>
+            <div class="service-card" data-service="Spa" onclick="toggleService('Spa', 500)">
+                <img src="{% static 'images/spa.png' %}" alt="Spa">
+                <p>Spa - ₹500</p>
+            </div>
+            <div class="service-card" data-service="Facial" onclick="toggleService('Facial', 350)">
+                <img src="{% static 'images/facial.png' %}" alt="Facial">
+                <p>Facial - ₹350</p>
+            </div>
+        </div>
+
+        <div class="btn-container">
+            <button onclick="generateTicket()" class="btn btn-primary">Generate Ticket</button>
+        </div>
+
+        <div id="ticket_details" class="ticket-details"></div>
+    </div>
+
+    <script>
+        let selectedServices = [];
+
+        function toggleService(service, price) {
+            let index = selectedServices.findIndex(item => item.service === service);
+            if (index === -1) {
+                selectedServices.push({ service, price });
+            } else {
+                selectedServices.splice(index, 1);
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            document.querySelectorAll('.service-card').forEach(card => {
+                let service = card.getAttribute('data-service');
+                card.classList.toggle('selected', selectedServices.some(item => item.service === service));
+            });
+        }
+
+        function generateTicket() {
+            let name = document.getElementById("customer_name").value;
+            if (!name || selectedServices.length === 0) {
+                alert("Enter customer name and select at least one service.");
+                return;
+            }
+
+            fetch("/generate-ticket/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    customer_name: name,
+                    services: selectedServices.map(item => item.service)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById("ticket_details").style.display = "block";
+                    document.getElementById("ticket_details").innerHTML = `
+                        <h4 class="text-success">✔ Ticket Generated Successfully!</h4>
+                        <hr>
+                        <p><strong>Ticket ID:</strong> ${data.ticket_id}</p>
+                        <p><strong>Customer:</strong> ${data.customer_name}</p>
+                        <p><strong>Services:</strong> ${data.services.join(", ")}</p>
+                        <p><strong>Total:</strong> ₹${data.total_amount}</p>
+                    `;
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+
+</body>
+</html>
